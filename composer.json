@@ -1,0 +1,21 @@
+{
+    "name": "nazmulpcc/hn-php-qt",
+    "description": "Hackernews desktop client built with PHP",
+    "type": "project",
+    "require": {
+        "react/http": "3.x-dev"
+    },
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "Nazmulpcc\\HnPhpQt\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "Nazmul Alam",
+            "email": "n@zmul.dev"
+        }
+    ],
+    "minimum-stability": "dev"
+}

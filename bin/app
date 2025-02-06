@@ -1,0 +1,13 @@
+#!/usr/bin/env php
+<?php
+
+use Nazmulpcc\HnPhpQt\Application;
+use Nazmulpcc\HnPhpQt\Pages\HomePage;
+
+require __DIR__ . '/../vendor/autoload.php';
+
+$app = Application::instance();
+
+$app->setPage(new HomePage());
+
+$app->run();
