@@ -42,10 +42,12 @@ class Application
     public function setPage(Page $page): void
     {
         $page->render($this->window);
+        $this->window->setCentralWidget($page);
     }
 
     public function run(): int
     {
+        Loop::run();
         $this->window->show();
         return $this->app->exec();
     }

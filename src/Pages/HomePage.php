@@ -33,8 +33,14 @@ class HomePage extends Page
     public function render(QMainWindow $window): void
     {
         $client = new HackerNewsClient();
-        $client->getTopStories()->then(function (array $data){
-            print_r($data);
+        $client->getTopStories()->then(function (array $data) use ($client) {
+            $data = array_slice($data, 0, 10);
+            echo "Data count: " . count($data) . PHP_EOL;
+            foreach ($data as $id) {
+                $client->getItem($id)->then(function (array $item) {
+                    $this->layout()->addWidget(new QLabel($item['title']));
+                });
+            }
         });
     }
 }

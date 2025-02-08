@@ -2,6 +2,7 @@
 
 namespace Nazmulpcc\HnPhpQt;
 
+use Qt\Core\QObject;
 use React\EventLoop\LoopInterface;
 use React\EventLoop\SignalsHandler;
 use React\EventLoop\Tick\FutureTickQueue;
@@ -24,6 +25,7 @@ final class QtEventLoop implements LoopInterface
     private $pcntl = false;
     private $pcntlPoll = false;
     private $signals;
+    private QObject $timer;
 
     public function __construct()
     {
@@ -138,9 +140,9 @@ final class QtEventLoop implements LoopInterface
     {
         $this->running = true;
 
-        $object = new \Qt\Core\QObject();
+        $this->timer = new QObject();
 
-        $object->startTimer(function () {
+        $this->timer->startTimer(function () {
             $this->futureTickQueue->tick();
 
             $this->timers->tick();
@@ -172,7 +174,7 @@ final class QtEventLoop implements LoopInterface
             }
 
             $this->waitForStreamActivity(0);
-        }, 50);
+        }, 50, 1);
     }
 
     public function stop()
