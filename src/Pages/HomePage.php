@@ -3,6 +3,7 @@
 namespace Nazmulpcc\HnPhpQt\Pages;
 
 use Nazmulpcc\HnPhpQt\Application;
+use Nazmulpcc\HnPhpQt\Components\NewsItem;
 use Nazmulpcc\HnPhpQt\HackerNewsClient;
 use Qt\Widgets\QHBoxLayout;
 use Qt\Widgets\QLabel;
@@ -10,8 +11,10 @@ use Qt\Widgets\QLayout;
 use Qt\Widgets\QLineEdit;
 use Qt\Widgets\QMainWindow;
 use Qt\Widgets\QPushButton;
+use Qt\Widgets\QScrollArea;
 use Qt\Widgets\QVBoxLayout;
 use Qt\Widgets\QWidget;
+use function React\Promise\all;
 
 class HomePage extends Page
 {
@@ -32,15 +35,23 @@ class HomePage extends Page
 
     public function render(QMainWindow $window): void
     {
+        $window->setFixedSize(800, 600);
+        $window->setWindowTitle('Hacker News Reader');
+        $scrollArea = new QScrollArea();
+        $scrollArea->setWidgetResizable(true);
+        $scrollArea->setWidget($this);
+        $window->setCentralWidget($scrollArea);
+
         $client = new HackerNewsClient();
-        $client->getTopStories()->then(function (array $data) use ($client) {
-            $data = array_slice($data, 0, 10);
-            echo "Data count: " . count($data) . PHP_EOL;
-            foreach ($data as $id) {
-                $client->getItem($id)->then(function (array $item) {
-                    $this->layout()->addWidget(new QLabel($item['title']));
-                });
-            }
-        });
+        $client->getTopStories()
+            ->then(function (array $data) use ($window, $client) {
+                $data = array_slice($data, 0, 10);
+                $promises = [];
+                foreach ($data as $id) {
+                    $promises[] = $client->getItem($id)->then(function (array $item) {
+                        $this->layout->addWidget(new NewsItem($item));
+                    });
+                }
+            });
     }
 }
