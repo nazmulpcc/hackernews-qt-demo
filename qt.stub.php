@@ -1,1 +1,1 @@
-/home/nazmul/lab/qt/qt.stub.php
+/Users/nazmul/lab/qt/qt.stub.php
