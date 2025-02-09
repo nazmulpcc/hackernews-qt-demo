@@ -17,14 +17,14 @@ class ItemComment extends QWidget
     public function __construct(protected Item $comment, protected int $depth = 0)
     {
         parent::__construct();
-        $this->setObjectName("comment-{$this->comment->id}");
         $this->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
         $leftMargin = $this->depth * 10;
-        $this->setStyleSheet("#{$this->objectName()}{
-            margin-left: {$leftMargin}px;
-            border-left: 1px solid #555;
-            padding-left: 5px;
-        }");
+        StyleSheet::apply($this, [
+            'border-top' => '1px solid #555',
+            'margin-top' => '5px',
+            'padding-top' => '5px',
+            'margin-left' => "{$leftMargin}px",
+        ]);
         $layout = new QVBoxLayout();
         $this->setLayout($layout);
 
