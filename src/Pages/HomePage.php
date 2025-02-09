@@ -36,6 +36,11 @@ class HomePage extends Page
 
     protected bool $currentItemHasUpdates = false;
 
+    /**
+     * @var array<int, NewsItem>
+     */
+    protected array $sidebarItems = [];
+
     public function __construct(?QWidget $parent = null, int $windowFlags = 0)
     {
         parent::__construct($parent, $windowFlags);
@@ -71,16 +76,27 @@ class HomePage extends Page
                 $promises = [];
                 foreach ($data as $id) {
                     $promises[] = $client->getItem($id)->then(function (Item $item) {
-                        $this->itemListLayout->addWidget(new NewsItem($item, $this));
+                        $this->itemListLayout->addWidget($this->sidebarItems[$item->id] = new NewsItem($item, $this));
                     });
                 }
                 all($promises)->then(fn() => $this->itemListLayout->addStretch(1));
             });
     }
 
-    public function setItem(Item $item): void
+    public function setItem(Item|false $item): void
     {
+        if ($item === false) {
+            // Remove the current item view and show the no content widget
+            $this->contentArea->removeWidget($this->itemView);
+            $this->contentArea->setCurrentWidget($this->noContent);
+            unset($this->itemView, $this->currentItem);
+            return;
+        }
         if (!isset($this->currentItem) || $this->currentItem->id !== $item->id) {
+            // If the current item is not the same as the new item, load the new item
+            if (isset($this->currentItem)) {
+                $this->sidebarItems[$this->currentItem->id]->setActive(false);
+            }
             unset($this->currentItem);
             $item->on('updated', fn() => $this->currentItemHasUpdates = true);
             $item->loadChildren();
@@ -88,8 +104,9 @@ class HomePage extends Page
         }
 
         if (isset($this->itemView)) {
+            // Remove the previous item view if it exists, so we can repaint the new item view
             $this->contentArea->removeWidget($this->itemView);
-            unset($this->itemView); // Remove the previous item view if it exists
+            unset($this->itemView);
         }
         $this->createItemViewWidget($item);
         $this->contentArea->addWidget($this->itemView);

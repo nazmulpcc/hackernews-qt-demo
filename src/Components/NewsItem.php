@@ -16,6 +16,8 @@ class NewsItem extends QWidget
 {
     protected QLayout $layout;
 
+    protected QPushButton $action;
+
     public function __construct(protected Item $item, protected HomePage $parent)
     {
         parent::__construct($parent);
@@ -27,14 +29,10 @@ class NewsItem extends QWidget
             border: 1px solid #555;
             border-radius: 5px;
         }");
+
         $this->layout->addWidget($this->createHeadingLabel());
         $this->layout->addWidget($this->createInformationLabel());
-        $readMore = new QPushButton('Read More');
-        $readMore->onClicked(function () {
-            $this->parent->setItem($this->item);
-        });
-        $readMore->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
-        $this->layout->addWidget($readMore);
+        $this->layout->addWidget($this->createActionButton());
     }
 
     protected function createHeadingLabel(): QLabel
@@ -52,9 +50,8 @@ class NewsItem extends QWidget
     protected function createInformationLabel(): QLabel
     {
         $text = sprintf(
-            '<b style="color: #aaa">%s</b> | %s comments | %s',
+            '<b style="color: #aaa">%s</b> | %s',
             $this->item->by,
-            $this->item->descendants,
             date('M d, Y', $this->item->time),
         );
 
@@ -66,5 +63,32 @@ class NewsItem extends QWidget
         ]);
 
         return $label;
+    }
+
+    protected function createActionButton(): QPushButton
+    {
+        $this->action = new QPushButton('Read More');
+        $this->action->onClicked(fn() => $this->handleAction($this->action));
+        $this->action->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
+
+        return $this->action;
+    }
+
+    protected function handleAction(): void
+    {
+        if ($this->action->text() === 'Read More') {
+            $this->parent->setItem($this->item);
+            $this->setActive(true);
+        } else {
+            $this->parent->setItem(false);
+            $this->setActive(false);
+        }
+    }
+
+    public function setActive(bool $active): void
+    {
+        $this->action->setText(
+            $active ? 'Close' : 'Read More'
+        );
     }
 }
