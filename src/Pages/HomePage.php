@@ -2,6 +2,7 @@
 
 namespace Nazmulpcc\HnPhpQt\Pages;
 
+use Nazmulpcc\HnPhpQt\Application;
 use Nazmulpcc\HnPhpQt\Components\ItemComment;
 use Nazmulpcc\HnPhpQt\Components\NewsItem;
 use Nazmulpcc\HnPhpQt\HackerNewsClient;
@@ -90,17 +91,19 @@ class HomePage extends Page
             $this->contentArea->removeWidget($this->itemView);
             $this->contentArea->setCurrentWidget($this->noContent);
             unset($this->itemView, $this->currentItem);
+            Application::instance()->window()->setWindowTitle('Hacker News Reader');
             return;
         }
         if (!isset($this->currentItem) || $this->currentItem->id !== $item->id) {
             // If the current item is not the same as the new item, load the new item
             if (isset($this->currentItem)) {
-                $this->sidebarItems[$this->currentItem->id]->setActive(false);
+                $this->sidebarItems[$this->currentItem->id]?->setActive(false);
             }
             unset($this->currentItem);
             $item->on('updated', fn() => $this->currentItemHasUpdates = true);
             $item->loadChildren();
             $this->currentItem = $item;
+            Application::instance()->window()->setWindowTitle($item->title . ' - Hacker News Reader');
         }
 
         if (isset($this->itemView)) {
@@ -135,6 +138,7 @@ class HomePage extends Page
     {
         $widget = new QWidget();
         $this->itemView = new QScrollArea();
+        $widget->setMaximumWidth(800);
         $widget->setLayout($this->itemViewLayout = new QVBoxLayout());
         $this->itemViewLayout->addWidget($title = new QLabel("<h2><a href='{$item->url}'>{$item->title}</a></h2>"));
         $this->itemViewLayout->addWidget(new QLabel(sprintf(

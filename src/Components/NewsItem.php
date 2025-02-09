@@ -68,7 +68,7 @@ class NewsItem extends QWidget
     protected function createActionButton(): QPushButton
     {
         $this->action = new QPushButton('Read More');
-        $this->action->onClicked(fn() => $this->handleAction($this->action));
+        $this->action->onClicked([$this, 'handleAction']);
         $this->action->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
 
         return $this->action;
