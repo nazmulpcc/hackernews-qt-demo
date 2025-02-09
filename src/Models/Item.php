@@ -16,6 +16,7 @@ use Nazmulpcc\HnPhpQt\HackerNewsClient;
  * @property-read string $type
  * @property-read string $url
  * @property-read string $text
+ * @property-read bool $deleted
  */
 class Item extends EventEmitter
 {
@@ -65,7 +66,7 @@ class Item extends EventEmitter
      */
     public function comments(): array
     {
-        return array_filter($this->children, fn($child) => $child->type === 'comment');
+        return array_filter($this->children, fn(self $child) => !$child->deleted && $child->type === 'comment');
     }
 
     public function commentCount(): int

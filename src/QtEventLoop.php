@@ -174,7 +174,7 @@ final class QtEventLoop implements LoopInterface
             }
 
             $this->waitForStreamActivity(0);
-        }, 50, 1);
+        }, 5, 1);
     }
 
     public function stop()

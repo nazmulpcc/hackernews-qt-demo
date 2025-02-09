@@ -6,6 +6,7 @@ use Nazmulpcc\HnPhpQt\Components\ItemComment;
 use Nazmulpcc\HnPhpQt\Components\NewsItem;
 use Nazmulpcc\HnPhpQt\HackerNewsClient;
 use Nazmulpcc\HnPhpQt\Models\Item;
+use Qt\TextInteractionFlag;
 use Qt\Widgets\QHBoxLayout;
 use Qt\Widgets\QLabel;
 use Qt\Widgets\QMainWindow;
@@ -14,6 +15,7 @@ use Qt\Widgets\QSplitter;
 use Qt\Widgets\QStackedWidget;
 use Qt\Widgets\QVBoxLayout;
 use Qt\Widgets\QWidget;
+use React\EventLoop\Loop;
 use function React\Promise\all;
 
 class HomePage extends Page
@@ -30,11 +32,22 @@ class HomePage extends Page
 
     protected QVBoxLayout $itemViewLayout;
 
+    protected Item $currentItem;
+
+    protected bool $currentItemHasUpdates = false;
+
     public function __construct(?QWidget $parent = null, int $windowFlags = 0)
     {
         parent::__construct($parent, $windowFlags);
         $this->setObjectName('HomePage');
         $this->setLayout(new QVBoxLayout());
+
+        Loop::addPeriodicTimer(1, function (){
+            if ($this->currentItemHasUpdates) {
+                $this->setItem($this->currentItem);
+                $this->currentItemHasUpdates = false;
+            }
+        });
     }
 
     public function render(QMainWindow $window): void
@@ -63,28 +76,24 @@ class HomePage extends Page
                 }
                 all($promises)->then(fn() => $this->itemListLayout->addStretch(1));
             });
-
-        $window->dumpObjectTree();
     }
 
     public function setItem(Item $item): void
     {
-        $rendering = false;
-        $item->on('updated', function () use ($item, &$rendering) {
-            if ($rendering) {
-                return;
-            }
-            $rendering = true;
-            if (isset($this->itemView)) {
-                $this->contentArea->removeWidget($this->itemView);
-                unset($this->itemView); // Remove the previous item view if it exists
-            }
-            $this->createItemViewWidget($item);
-            $this->contentArea->addWidget($this->itemView);
-            $this->contentArea->setCurrentWidget($this->itemView);
-            $rendering = false;
-        });
-        $item->loadChildren();
+        if (!isset($this->currentItem) || $this->currentItem->id !== $item->id) {
+            unset($this->currentItem);
+            $item->on('updated', fn() => $this->currentItemHasUpdates = true);
+            $item->loadChildren();
+            $this->currentItem = $item;
+        }
+
+        if (isset($this->itemView)) {
+            $this->contentArea->removeWidget($this->itemView);
+            unset($this->itemView); // Remove the previous item view if it exists
+        }
+        $this->createItemViewWidget($item);
+        $this->contentArea->addWidget($this->itemView);
+        $this->contentArea->setCurrentWidget($this->itemView);
     }
 
     protected function createItemListWidget(): void
@@ -101,7 +110,7 @@ class HomePage extends Page
     {
         $this->noContent = new QWidget();
         $layout = new QHBoxLayout();
-        $layout->addWidget(new QLabel('<h1 style="font-weight: normal; color: #aaa">No content available</h1>'));
+        $layout->addWidget(new QLabel('<h1 style="font-weight: normal; color: #777; text-align: center">Select a story to view</h1>'));
         $this->noContent->setLayout($layout);
     }
 
@@ -110,7 +119,7 @@ class HomePage extends Page
         $widget = new QWidget();
         $this->itemView = new QScrollArea();
         $widget->setLayout($this->itemViewLayout = new QVBoxLayout());
-        $this->itemViewLayout->addWidget(new QLabel("<h2><a href='{$item->url}'>{$item->title}</a></h2>"));
+        $this->itemViewLayout->addWidget($title = new QLabel("<h2><a href='{$item->url}'>{$item->title}</a></h2>"));
         $this->itemViewLayout->addWidget(new QLabel(sprintf(
             '<span style="color: #aaa"><b>%s</b> | %s comments | %s</span>',
             $item->by,
@@ -118,6 +127,9 @@ class HomePage extends Page
             date('M d, Y', $item->time),
         )));
         $this->itemViewLayout->addSpacing(20);
+
+        $title->setOpenExternalLinks(true);
+        $title->setTextInteractionFlags(TextInteractionFlag::TextBrowserInteraction);
 
         foreach ($item->comments() as $comment) {
             $this->itemViewLayout->addWidget(new ItemComment($comment));
