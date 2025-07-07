@@ -2,6 +2,7 @@
 
 namespace Nazmulpcc\HnPhpQt;
 
+use Nazmulpcc\HnPhpQt\Timer as QtTimer;
 use Qt\Core\QObject;
 use React\EventLoop\LoopInterface;
 use React\EventLoop\SignalsHandler;
@@ -25,7 +26,7 @@ final class QtEventLoop implements LoopInterface
     private $pcntl = false;
     private $pcntlPoll = false;
     private $signals;
-    private QObject $timer;
+    private QtTimer $timer;
 
     public function __construct()
     {
@@ -140,9 +141,9 @@ final class QtEventLoop implements LoopInterface
     {
         $this->running = true;
 
-        $this->timer = new QObject();
+        $this->timer = new QtTimer();
 
-        $this->timer->startTimer(function () {
+        $this->timer->setCallback(function () {
             $this->futureTickQueue->tick();
 
             $this->timers->tick();
@@ -174,7 +175,9 @@ final class QtEventLoop implements LoopInterface
             }
 
             $this->waitForStreamActivity(0);
-        }, 50, 1);
+        });
+
+        $this->timer->startTimer(50, 1);
     }
 
     public function stop()
@@ -255,7 +258,7 @@ final class QtEventLoop implements LoopInterface
                 // suppress warnings that occur when `stream_select()` is interrupted by a signal
                 // PHP defines `EINTR` through `ext-sockets` or `ext-pcntl`, otherwise use common default (Linux & Mac)
                 $eintr = \defined('SOCKET_EINTR') ? \SOCKET_EINTR : (\defined('PCNTL_EINTR') ? \PCNTL_EINTR : 4);
-                if ($errno === \E_WARNING && \strpos($errstr, '[' . $eintr .']: ') !== false) {
+                if ($errno === \E_WARNING && \strpos($errstr, '[' . $eintr . ']: ') !== false) {
                     return;
                 }
 

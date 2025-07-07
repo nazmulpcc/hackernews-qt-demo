@@ -25,11 +25,17 @@ class HackerNewsClient
             });
     }
 
-    public function getItem(int $id): PromiseInterface
+    public function getItem(int $id, int $retry = 3, int $trying = 0): PromiseInterface
     {
         return $this->http->get("https://hacker-news.firebaseio.com/v0/item/{$id}.json")
             ->then(function (Response $response) {
                 return new Item(json_decode($response->getBody(), true));
+            })
+            ->catch(function (\Exception $e) use ($retry, $id, $trying) {
+                if ($trying < $retry) {
+                    return $this->getItem($id, $retry, $trying + 1);
+                }
+                throw new \RuntimeException("Failed to fetch item with ID {$id}: " . $e->getMessage());
             });
     }
 }

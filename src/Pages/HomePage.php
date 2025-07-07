@@ -48,7 +48,7 @@ class HomePage extends Page
         $this->setObjectName('HomePage');
         $this->setLayout(new QVBoxLayout());
 
-        Loop::addPeriodicTimer(1, function (){
+        Loop::addPeriodicTimer(1, function () {
             if ($this->currentItemHasUpdates) {
                 $this->setItem($this->currentItem);
                 $this->currentItemHasUpdates = false;
@@ -73,7 +73,7 @@ class HomePage extends Page
         $client = new HackerNewsClient();
         $client->getTopStories()
             ->then(function (array $data) use ($window, $client) {
-                $data = array_slice($data, 0, 10);
+                //$data = array_slice($data, 0, 10);
                 $promises = [];
                 foreach ($data as $id) {
                     $promises[] = $client->getItem($id)->then(function (Item $item) {
