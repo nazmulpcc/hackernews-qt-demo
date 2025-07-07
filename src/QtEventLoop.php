@@ -26,7 +26,7 @@ final class QtEventLoop implements LoopInterface
     private $pcntl = false;
     private $pcntlPoll = false;
     private $signals;
-    private QtTimer $timer;
+    private QtEventLoopTimer $timer;
 
     public function __construct()
     {
@@ -35,6 +35,8 @@ final class QtEventLoop implements LoopInterface
         $this->pcntl = \function_exists('pcntl_signal') && \function_exists('pcntl_signal_dispatch');
         $this->pcntlPoll = $this->pcntl && !\function_exists('pcntl_async_signals');
         $this->signals = new SignalsHandler();
+        $this->timer = new QtEventLoopTimer();
+        $this->timer->onTick(fn() => $this->timerEvent());
 
         // prefer async signals if available (PHP 7.1+) or fall back to dispatching on each tick
         if ($this->pcntl && !$this->pcntlPoll) {
@@ -141,48 +143,48 @@ final class QtEventLoop implements LoopInterface
     {
         $this->running = true;
 
-        $this->timer = new QtTimer();
-
-        $this->timer->setCallback(function () {
-            $this->futureTickQueue->tick();
-
-            $this->timers->tick();
-
-            // Future-tick queue has pending callbacks ...
-            if (!$this->running || !$this->futureTickQueue->isEmpty()) {
-                $timeout = 0;
-
-                // There is a pending timer, only block until it is due ...
-            } elseif ($scheduledAt = $this->timers->getFirst()) {
-                $timeout = $scheduledAt - $this->timers->getTime();
-                if ($timeout < 0) {
-                    $timeout = 0;
-                } else {
-                    // Convert float seconds to int microseconds.
-                    // Ensure we do not exceed maximum integer size, which may
-                    // cause the loop to tick once every ~35min on 32bit systems.
-                    $timeout *= self::MICROSECONDS_PER_SECOND;
-                    $timeout = $timeout > \PHP_INT_MAX ? \PHP_INT_MAX : (int)$timeout;
-                }
-
-                // The only possible event is stream or signal activity, so wait forever ...
-            } elseif ($this->readStreams || $this->writeStreams || !$this->signals->isEmpty()) {
-                $timeout = null;
-
-                // There's nothing left to do ...
-            } else {
-                return;
-            }
-
-            $this->waitForStreamActivity(0);
-        });
-
-        $this->timer->startTimer(50, 1);
+        $this->timer->start();
     }
 
     public function stop()
     {
+        $this->timer->stop();
         $this->running = false;
+    }
+
+    protected function timerEvent(): void
+    {
+        $this->futureTickQueue->tick();
+
+        $this->timers->tick();
+
+        // Future-tick queue has pending callbacks ...
+        if (!$this->running || !$this->futureTickQueue->isEmpty()) {
+            $timeout = 0;
+
+            // There is a pending timer, only block until it is due ...
+        } elseif ($scheduledAt = $this->timers->getFirst()) {
+            $timeout = $scheduledAt - $this->timers->getTime();
+            if ($timeout < 0) {
+                $timeout = 0;
+            } else {
+                // Convert float seconds to int microseconds.
+                // Ensure we do not exceed maximum integer size, which may
+                // cause the loop to tick once every ~35min on 32bit systems.
+                $timeout *= self::MICROSECONDS_PER_SECOND;
+                $timeout = $timeout > \PHP_INT_MAX ? \PHP_INT_MAX : (int)$timeout;
+            }
+
+            // The only possible event is stream or signal activity, so wait forever ...
+        } elseif ($this->readStreams || $this->writeStreams || !$this->signals->isEmpty()) {
+            $timeout = null;
+
+            // There's nothing left to do ...
+        } else {
+            return;
+        }
+
+        $this->waitForStreamActivity(0);
     }
 
     /**
